@@ -1,131 +1,81 @@
-# Baidu Baike Scholar Entry Drafts
+# 百度百科学者人物词条草稿镜像
 
-This repository is a Markdown mirror for Baidu Baike scholar/person entry drafts.
-It is maintained from the Markdown files currently placed directly under `D:\`.
+本仓库用于保存百度百科学者、人物词条草稿的镜像文件。
 
-## Purpose
+仓库根目录下带三位数字前缀的文档，来自丁盘根目录当前存在的草稿文档。丁盘是唯一来源；仓库中的编号文档只是镜像，不应先在仓库里直接改正文。需要调整条目内容时，应先修改或替换丁盘根目录里的对应源文件，再执行同步。
 
-The repository exists so that the current Baidu Baike draft set can be reviewed,
-versioned, and shared through GitHub while keeping `D:\` as the only source of
-truth.
+本说明文档只用于说明仓库规则，不属于草稿镜像集合。
 
-The numbered Markdown files in the repository root are mirror files. They should
-not be edited in the repository first. Edit or replace the corresponding source
-file in `D:\`, then run the sync workflow.
+## 同步范围
 
-`README.md` is repository documentation and is not part of the mirrored draft
-set.
+只同步同时满足以下条件的文件：
 
-## Source Scope
+- 文件位于丁盘根目录。
+- 文件扩展名是草稿文档后缀。
+- 文件是普通文件。
 
-Only files that match all of these conditions are mirrored:
+不会同步丁盘子目录里的文件。不会同步非草稿文档后缀文件。同步过程不得修改、重命名、删除或重新格式化丁盘源文件。
 
-- The file is directly under `D:\`.
-- The file extension is `.md`.
-- The file is a regular file.
+## 排序规则
 
-Files in subdirectories under `D:\` are ignored. Non-Markdown files are ignored.
-The sync workflow must never modify, rename, delete, or reformat the source files
-in `D:\`.
+同步前，先对丁盘根目录的草稿源文件排序：
 
-## Ordering Rule
+1. 按修改时间从新到旧排序。
+2. 如果修改时间完全相同，再按文件名稳定排序。
 
-Before copying, source Markdown files are sorted by:
+仓库镜像文件按排序结果重建，并使用三位数字前缀命名：
 
-1. `LastWriteTimeUtc`, newest first.
-2. File name, ascending, only when the modification time is exactly identical.
-
-The repository mirror is rebuilt from that ordered list. Each mirrored file is
-named with a three-digit sequence prefix:
-
-```text
-001_原文件名.md
-002_原文件名.md
-003_原文件名.md
+```
+001_原文件名
+002_原文件名
+003_原文件名
 ```
 
-This makes the GitHub file list follow the same order as the `D:\` root
-Markdown files sorted by latest modification time.
+这样在仓库页面从上到下看到的草稿顺序，就与丁盘根目录按修改时间从新到旧排序后的顺序一致。
 
-## Sync Policy
+## 同步规则
 
-Use `D:\` root Markdown files as the only source.
+同步时必须以丁盘根目录草稿文档为唯一来源：
 
-- If a Markdown file exists in `D:\` root, it must exist in the repository mirror.
-- If a mirrored Markdown file no longer corresponds to a `D:\` root file, delete
-  it from the repository.
-- If the source content changed, update the mirrored file.
-- If the source content did not change, avoid unnecessary content changes.
-- Do not touch non-Markdown files or unrelated repository configuration.
-- Keep `README.md` as documentation outside the mirrored draft set.
+- 丁盘根目录存在的草稿文档，仓库镜像中必须存在。
+- 丁盘根目录不存在的草稿文档，仓库镜像中必须删除。
+- 丁盘源文件内容有变化时，仓库镜像必须更新。
+- 源文件内容没有变化时，不做无意义正文改动。
+- 不处理非草稿文档后缀文件。
+- 不修改仓库其他配置。
+- 保留本说明文档，不把它当作草稿镜像文件。
 
-## Standard Workflow
+## 标准操作流程
 
-Start from a clean repository:
+每次同步前，先确认仓库没有未提交改动，并快进拉取远端最新版本。
 
-```powershell
-$repo = 'C:\Users\12644\Documents\Codex\workspaces\baidu-baike-scholar-entry-drafts'
-git -C $repo status --short
-git -C $repo pull --ff-only origin main
-```
+如果状态检查发现本地已有改动，必须先检查清楚，不得覆盖用户工作。
 
-If `git status --short` reports local changes, inspect them first and do not
-overwrite user work.
+随后从丁盘根目录读取所有草稿文档，按修改时间从新到旧排序；如果修改时间完全相同，再按文件名排序。仓库根目录中除本说明文档之外的草稿镜像文件应全部按最新排序结果重建为三位编号文件名。
 
-Then rebuild the mirror from `D:\` root Markdown files:
+## 校验要求
 
-```powershell
-$repo = 'C:\Users\12644\Documents\Codex\workspaces\baidu-baike-scholar-entry-drafts'
-$sourceRoot = 'D:\'
+同步后，提交前必须逐项校验：
 
-$sourceFiles = Get-ChildItem -LiteralPath $sourceRoot -File -Filter '*.md' |
-  Sort-Object @{ Expression = 'LastWriteTimeUtc'; Descending = $true },
-              @{ Expression = 'Name'; Descending = $false }
+1. 仓库镜像草稿文档数量等于丁盘根目录草稿文档数量。
+2. 仓库镜像文件名与预期三位编号顺序完全一致。
+3. 每个仓库镜像文件的二五六位安全哈希值与对应丁盘源文件一致。
 
-Get-ChildItem -LiteralPath $repo -File -Filter '*.md' |
-  Where-Object { $_.Name -ne 'README.md' } |
-  Remove-Item -Force
+校验时应排除本说明文档，因为它不是草稿镜像文件。
 
-$i = 1
-foreach ($src in $sourceFiles) {
-  $targetName = ('{0:D3}_{1}' -f $i, $src.Name)
-  Copy-Item -LiteralPath $src.FullName -Destination (Join-Path $repo $targetName) -Force
-  $i++
-}
-```
+## 提交与推送
 
-## Verification
+只有确实发生变化时才提交并推送。
 
-After syncing, verify all three points before committing:
+如果校验后没有任何改动，不要创建空提交。
 
-1. The mirrored file count equals the `D:\` root Markdown file count.
-2. The mirrored file names exactly match the expected numbered order.
-3. Every mirrored file has the same SHA256 hash as its source file.
+## 汇报要求
 
-The comparison should ignore `README.md` because it is documentation, not a
-mirrored draft.
+每次同步完成后，应简短汇报：
 
-## Commit And Push
-
-Commit only when there are real changes:
-
-```powershell
-git -C $repo status --short
-git -C $repo add -A
-git -C $repo commit -m "Sync Baidu Baike scholar entry drafts"
-git -C $repo push origin main
-```
-
-If `git status --short` is empty after verification, do not create an empty
-commit.
-
-## Reporting Checklist
-
-Each sync run should report:
-
-- Whether changes were pushed.
-- The commit hash, if a commit was created.
-- Current mirrored Markdown count.
-- The first and last mirrored file names.
-- Whether any temporary files were created, modified, deleted, or cleaned up.
-
+- 是否已经推送。
+- 如果创建了提交，说明提交哈希。
+- 当前镜像草稿文档数量。
+- 仓库最上面的镜像文件名。
+- 仓库最后面的镜像文件名。
+- 是否创建、修改、删除或清理了临时文件。
